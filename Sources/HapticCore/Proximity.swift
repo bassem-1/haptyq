@@ -55,6 +55,13 @@ public final class ProximityEngine {
     public init(actuator: Actuator, config: ProximityConfig = .load()) {
         self.actuator = actuator
         self._config = config
+    }
+
+    deinit { timer?.cancel() }
+
+    /// The 5 ms tick only runs while there is something to do, so an idle engine costs no wakeups. Queue-only.
+    private func arm() {
+        guard timer == nil, distance != nil else { return }
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now(), repeating: .milliseconds(5), leeway: .milliseconds(1))
         t.setEventHandler { [weak self] in self?.tick() }
@@ -62,7 +69,10 @@ public final class ProximityEngine {
         timer = t
     }
 
-    deinit { timer?.cancel() }
+    private func disarm() {
+        timer?.cancel()
+        timer = nil
+    }
 
     public var config: ProximityConfig {
         get { queue.sync { _config } }
@@ -75,6 +85,18 @@ public final class ProximityEngine {
         queue.async {
             self.distance = distance
             self.lastUpdate = now
+            self.arm()
+        }
+    }
+
+    /// Like `update(distance:)`, and swaps the config in the same queue hop. A nil config keeps the stored one.
+    public func update(distance: Double?, config: ProximityConfig?) {
+        let now = DispatchTime.now().uptimeNanoseconds
+        queue.async {
+            if let config { self._config = config }
+            self.distance = distance
+            self.lastUpdate = now
+            self.arm()
         }
     }
 
@@ -88,11 +110,10 @@ public final class ProximityEngine {
     }
 
     private func tick() {
-        guard let d = distance else { return }
         let now = DispatchTime.now().uptimeNanoseconds
-        guard Double(now - lastUpdate) / 1e6 <= _config.idleMs,
-              let out = Self.output(_config, distance: d),
-              Double(now - lastFire) / 1e6 >= out.intervalMs else { return }
+        guard let d = distance, Double(now &- lastUpdate) / 1e6 <= _config.idleMs else { return disarm() }
+        guard let out = Self.output(_config, distance: d),
+              Double(now &- lastFire) / 1e6 >= out.intervalMs else { return }
         lastFire = now
         actuator.fire(id: out.id)
     }

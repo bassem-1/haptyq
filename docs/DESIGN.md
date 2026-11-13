@@ -80,7 +80,7 @@ quit                                v0.1.0
 ### 2.3 desktop gadget
 - `NSPanel`, styleMask `[.borderless, .nonactivatingPanel]`, clear background, not opaque, no shadow,
   `collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]`,
-  `isMovableByWindowBackground = true`, `hidesOnDeactivate = false`, `canBecomeKey` false.
+  `hidesOnDeactivate = false`, `canBecomeKey` false. dragging is handled in `sendEvent` (not `isMovableByWindowBackground`, which swallows mouse-up and breaks click-to-toggle).
 - level: `Int(CGWindowLevelForKey(.desktopIconWindow)) + 1` when `!gadgetFloats`, else `.floating`.
 - size 140×140, black rounded rect radius 22 with a 1px 16%-yellow border.
 - content: top-left `tremor` 11 secondary; center the state word `on` / `off` at 22 medium (yellow when on,

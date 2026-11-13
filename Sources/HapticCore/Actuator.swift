@@ -15,6 +15,15 @@ public final class Actuator {
     private var actuator: UnsafeMutableRawPointer?
     private var actuate: ActActuateFn?
     private var close: ActCloseFn?
+    // fire() is called from several queues (proximity, patterns, tracker); the private api isn't known to be reentrant.
+    private let lock = NSLock()
+    private var _onFire: (() -> Void)?
+
+    /// Called after every fire attempt, on whichever queue fired. Keep it cheap.
+    public var onFire: (() -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return _onFire }
+        set { lock.lock(); _onFire = newValue; lock.unlock() }
+    }
 
     public init?() {
         let path = "/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport"
@@ -55,10 +64,17 @@ public final class Actuator {
     /// Fires an actuation; falls back to the public generic haptic if the private path is unavailable or fails.
     @discardableResult
     public func fire(id: Int32, f1: Float = 0, f2: Float = 0) -> Bool {
-        if let a = actuator, let act = actuate, act(UnsafeRawPointer(a), id, 0, f1, f2) == 0 {
-            return true
+        lock.lock()
+        var ok = false
+        if let a = actuator, let act = actuate { ok = act(UnsafeRawPointer(a), id, 0, f1, f2) == 0 }
+        let hook = _onFire
+        lock.unlock()
+        if !ok {
+            DispatchQueue.main.async {
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+            }
         }
-        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-        return false
+        hook?()
+        return ok
     }
 }

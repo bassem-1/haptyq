@@ -1,14 +1,68 @@
-# TrackpadHaptics
+# tremor
 
-Custom trackpad haptics for window actions (close, fullscreen, minimize, resize). macOS 13+, Swift 5.9.
+tremor is a macOS menu bar app that makes your force touch trackpad react to where the cursor is.
+near the red close button the trackpad pulses faster and harder ("frenzy"); near full screen it only taps once ("tick").
 
-Uses private MultitouchSupport APIs (loaded via dlopen): no App Store, and it may break with any macOS update.
+_demo gif coming soon._
 
-1. Build: `swift build -c release` (binaries in `.build/release/`).
-2. Grant **Accessibility** and **Input Monitoring** to your terminal (or the binary) in System Settings > Privacy & Security.
-3. Map IDs: `.build/release/haptic-lab sweep`, then `fire <id> [f1] [f2]` and `play <pattern>` to refine.
-4. Put chosen IDs in `Sources/HapticCore/Library.swift`, or override by name in `~/.config/trackpad-haptics/patterns.json`:
-   `[{"name":"latch","pulses":[{"id":6,"f1":0,"f2":0,"delayMs":0},{"id":3,"f1":0,"f2":0,"delayMs":45}]}]`
-5. Run: `.build/release/haptic-daemon`.
-6. Web lab: `.build/release/haptic-web [port]`, then open http://127.0.0.1:47823. It has a button for each actuator ID, a range sweep, the saved patterns, a small pattern builder (`6@0, 3@45`), and ratings for each ID (kept in your browser). It only listens on localhost.
-7. Proximity: as the cursor approaches a window's close button, the daemon fires taps that get faster and stronger. It also gives a light tick when the cursor enters any button. Tune this in the web lab's "Proximity playground". Settings are saved to `~/.config/trackpad-haptics/proximity.json`, and a running daemon reloads them within a second.
+tremor uses private MultitouchSupport and accessibility APIs, so it is not on the mac app store. it is distributed as an
+ad-hoc signed zip on github releases, without a paid apple developer account.
+
+## requirements
+
+- macOS 13 or later, with a force touch trackpad (tremor still runs without one, but nothing will vibrate).
+
+## install
+
+1. download `tremor-<version>.zip` from the latest release and unzip it.
+2. move `tremor.app` to `/Applications`.
+3. open it for the first time:
+   - macOS 15 or later: try to open it, then go to system settings › privacy & security and click "open anyway".
+   - macOS 13 or 14: right-click `tremor.app` and choose "open", then confirm.
+   - or run `xattr -dr com.apple.quarantine /Applications/tremor.app` in terminal.
+4. grant accessibility access when tremor asks. it needs this to see where the window buttons are.
+
+ad-hoc builds are not tied to an apple developer identity, so macOS may ask for accessibility access again after each
+update. toggle tremor off and on in system settings › privacy & security › accessibility.
+
+## use
+
+click the menu bar icon (three yellow bars) to open the panel:
+
+- each zone (close, minimize, full screen, other buttons, window edges) has a signal bar. click a cell to set how strong
+  the feel is, from off to frenzy.
+- click a zone's name to see its reach, whether a click needs to be confirmed, and a "feel it" preview.
+- the desktop gadget shows the state of tremor. click it to pause or resume, drag it to move it, and right-click it for
+  more options.
+
+## build from source
+
+tremor is a swift package. with xcode or the command line tools installed:
+
+    swift build -c release
+    swift test
+
+to build the app bundle and zip it the same way the releases are built:
+
+    scripts/bundle.sh --universal
+
+the output is `dist/tremor.app` and `dist/tremor-<version>.zip`. the universal build needs xcode.
+
+the version lives in `VERSION` at the repo root.
+
+## calibrating haptics
+
+the actuator ids that tremor uses differ between trackpads. to tune them, run the web lab:
+
+    swift run haptic-web
+
+then open the address it prints. it listens on localhost only.
+
+## a note on private apis
+
+tremor depends on private apple frameworks. they can change or disappear in any macOS update, and this project is not
+affiliated with apple. use it at your own risk.
+
+## license
+
+mit. see [license](LICENSE).
