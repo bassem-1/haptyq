@@ -208,3 +208,70 @@ entered element (`CFEqual` against the previous one).
 | engine agent   | `Sources/HapticCore/**`, `Sources/HaptyqKit/**` (except Model.swift), `Sources/haptic-web/**`, `Sources/haptic-lab/**`, `Tests/**` |
 | ui agent       | `Sources/haptyq/**` |
 | release agent  | `scripts/**`, `Resources/**`, `.github/**`, `README.md`, `LICENSE`, `VERSION`, `.gitignore` |
+
+---
+
+# v0.2: the haptyq window (supersedes conflicting parts above)
+
+the app was renamed tremor → haptyk → **haptyq** (targets `haptyq`, `HaptyqKit`, `HaptyqKitTests`, bundle id
+`io.github.bassem-1.haptyq`). user feedback on v0.1: "opening the app shows nothing", "i want a small app with the
+customization: radius, how close to which button", plus a real bug: permission granted while the popover was closed
+was never noticed, so haptics never started.
+
+## 8.1 model (lead, done; frozen)
+`ZoneSetting` is now `feel` (rhythm: off/tick/calm/ramp/frenzy), `radius` (pt, 10...300, clamped), `strength`
+(1...4, clamped), `confirmClick`. `Reach` is gone (old saves migrate via `LegacyReach`). `Zone.allowsReach` →
+`Zone.allowsRadius`. defaults: close frenzy r90 s4, minimize calm r40 s2, zoom tick r40 s2, buttons off s1, edges tick s2.
+
+## 8.2 mapping (engine agent)
+`hi = ladder index strength-1` (clamped to ladder bounds). rhythm (timing) stays per feel as in the 4.3 table; ids change:
+| feel   | proximity ids          | tick / button tap id | edge ratchet id |
+|--------|------------------------|----------------------|-----------------|
+| tick   | single tap ladder[hi]  | ladder[hi]           | ladder[hi], 40pt |
+| calm   | ladder[max(0,hi-1)...hi] | ladder[hi]         | ladder[hi], 40pt |
+| ramp   | ladder[0...hi]         | ladder[hi]           | ladder[hi], 25pt |
+| frenzy | ladder[max(0,hi-1)...hi] | ladder[hi]         | ladder[hi], 14pt |
+radius = `setting.radius`. update signatures to take the `ZoneSetting` (e.g. `buttonTapID(setting:ladder:)`,
+`edgeRatchet(setting:ladder:)`, `tickTapID(setting:ladder:)`), update the tracker and tests (add migration tests:
+legacy `reach` json → radius, out-of-range radius/strength clamp, missing strength).
+
+## 8.3 engine api additions (engine agent)
+- `public func hover(_ zone: Zone?, distance: Double?)` on `HaptyqEngine`: live preview driven by the window's
+  playground, using the zone's *current* setting from the last `apply`. works when disabled and without accessibility
+  (needs hardware only). nil zone or nil distance → silence. proximity feels drive a dedicated preview
+  `ProximityEngine`; tick and buttons fire once when distance crosses to 0 (re-arm when it goes back above 0);
+  edges: no-op (preview button covers it). calling `preview` or `hover(nil, …)` cancels the other.
+- `public var isRunning: Bool { get }`: whether the event tap is live (for the status line).
+
+## 8.4 app (ui agent)
+- **window**: opening the app (launch, dock click, spotlight while running → `applicationShouldHandleReopen`) shows
+  the haptyq window. an AppKit-managed `NSWindow` (via `NSApplicationDelegateAdaptor`) hosting SwiftUI, ~620×460, not
+  resizable, `titlebarAppearsTransparent`, `.fullSizeContentView`, title `haptyq` hidden, dark appearance, black bg.
+  the real traffic lights stay. while the window is visible the activation policy is `.regular` (dock icon); when it
+  closes, go back to `.accessory`. don't terminate on last window close. window frame autosaves.
+- **layout**: header row: `haptyq` 13 medium + status line (11 secondary) + master switch right. status line, by priority:
+  `needs accessibility · grant` (clickable) / `no force touch trackpad` / `paused` / `on · listening`.
+  body, two columns:
+  - **left: playground** (~300×300): a mock window drawn in black with a 16% border and a 28pt title bar holding three
+    mock buttons (12pt circles, yellow at 100/55/32% for close/minimize/zoom, with tiny `×` `–` `+` glyphs on hover).
+    each proximity zone with feel != off gets a dashed ring at its radius (the selected zone's ring is solid, others 16%).
+    a mock button area in the mock window body represents `other buttons` (an outlined capsule labeled `button`), and
+    the mock window's right edge has a 6pt grab strip for `window edges` (shows a hairline when hovered).
+    moving the cursor in the playground calls `engine.hover(zone, distance)` for the nearest active zone (same distance
+    math as the engine: distance from the circle's edge, 0 inside) ~60 Hz max; leaving → `hover(nil, nil)`.
+    under it a live readout (11pt): `close · 34 pt · 18 taps/s` or `move toward a button`.
+    clicking a mock button selects that zone.
+  - **right: inspector** for the selected zone: zone list (5 rows, signal bar showing feel, selected row highlighted
+    with an 8% fill); below it the selected zone's controls: `rhythm` signal bar (5 cells, existing component), `reach`
+    slider 10–300 pt with value readout (custom-drawn track: 2pt line at 16%, filled part 100%, 10pt knob; proximity
+    zones only), `strength` 4-cell bar (same visual language as the signal bar), `confirm click` switch (proximity
+    zones only), `feel it` text button → `engine.preview`.
+  - footer row (11pt): `desktop gadget` switch, `float` switch, `launch at login` switch, `quit` text button, version.
+- **popover**: simplify to header + master switch, the 5 zone rows with signal bars (quick change), `customize…` text
+  button (opens the window), and quit. remove the expandable rows and reach pills.
+- **gadget**: right-click menu gains `customize…`. double-click opens the window (single click still toggles; wait
+  for double-click interval before toggling only if that keeps it snappy, otherwise use right-click only).
+- **permission fix**: `AppModel` polls `Permissions.isTrusted` every 2 s while untrusted, regardless of which ui is
+  open, and calls `engine.refresh()` on change. stop polling once trusted; resume if it is revoked (check every 10 s
+  while trusted, cheap).
+- all v0.1 rules still apply: lowercase, black + #E4FF1A only, monospaced, no sf symbols in content, 4pt grid.

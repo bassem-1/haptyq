@@ -34,8 +34,8 @@ public enum Zone: String, Codable, CaseIterable, Identifiable, CodingKeyRepresen
     /// Traffic-light zones react to distance; the others react to entering or dragging.
     public var usesProximity: Bool { self == .close || self == .minimize || self == .zoom }
 
-    /// Reach is meaningless for zones without proximity.
-    public var allowsReach: Bool { usesProximity }
+    /// Radius is meaningless for zones without proximity.
+    public var allowsRadius: Bool { usesProximity }
 }
 
 /// How strongly a zone reacts. Ordered from nothing to everything.
@@ -66,15 +66,10 @@ public enum Feel: String, Codable, CaseIterable, Identifiable, Comparable, Senda
     public static func < (a: Feel, b: Feel) -> Bool { a.level < b.level }
 }
 
-/// How far from a target the effect starts (proximity zones only).
-public enum Reach: String, Codable, CaseIterable, Identifiable, Sendable {
+/// Legacy (v0.1) reach presets. Only used to migrate old saves to `ZoneSetting.radius`.
+enum LegacyReach: String, Codable {
     case near, mid, far
-
-    public var id: String { rawValue }
-    public var title: String { rawValue }
-
-    /// Radius in screen points around the button's edge.
-    public var points: Double {
+    var points: Double {
         switch self {
         case .near: 40
         case .mid: 90
@@ -83,14 +78,50 @@ public enum Reach: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Per-zone tuning. `feel` is the rhythm, `strength` how hard, `radius` how far out it starts.
 public struct ZoneSetting: Codable, Equatable, Sendable {
+    public static let radiusRange: ClosedRange<Double> = 10...300
+    public static let strengthRange: ClosedRange<Int> = 1...4
+
     public var feel: Feel
-    public var reach: Reach
+    /// Points from the button's edge at which proximity starts (proximity zones only).
+    public var radius: Double { didSet { radius = ZoneSetting.clampRadius(radius) } }
+    /// 1...4: the strongest rung of the ladder this zone may use.
+    public var strength: Int { didSet { strength = ZoneSetting.clampStrength(strength) } }
     /// Play a short confirmation pattern when the button is actually clicked.
     public var confirmClick: Bool
 
-    public init(feel: Feel, reach: Reach = .mid, confirmClick: Bool = true) {
-        self.feel = feel; self.reach = reach; self.confirmClick = confirmClick
+    public init(feel: Feel, radius: Double = 90, strength: Int = 3, confirmClick: Bool = true) {
+        self.feel = feel
+        self.radius = ZoneSetting.clampRadius(radius)
+        self.strength = ZoneSetting.clampStrength(strength)
+        self.confirmClick = confirmClick
+    }
+
+    static func clampRadius(_ r: Double) -> Double {
+        r.isFinite ? min(max(r, radiusRange.lowerBound), radiusRange.upperBound) : 90
+    }
+
+    static func clampStrength(_ s: Int) -> Int { min(max(s, strengthRange.lowerBound), strengthRange.upperBound) }
+
+    private enum CodingKeys: String, CodingKey { case feel, radius, strength, confirmClick, reach }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let feel = try c.decode(Feel.self, forKey: .feel)
+        let legacy = (try? c.decodeIfPresent(LegacyReach.self, forKey: .reach))?.points
+        let radius = (try? c.decodeIfPresent(Double.self, forKey: .radius)) ?? legacy ?? 90
+        let strength = (try? c.decodeIfPresent(Int.self, forKey: .strength)) ?? (feel == .frenzy ? 4 : 3)
+        let confirm = (try? c.decodeIfPresent(Bool.self, forKey: .confirmClick)) ?? true
+        self.init(feel: feel, radius: radius, strength: strength, confirmClick: confirm)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(feel, forKey: .feel)
+        try c.encode(radius, forKey: .radius)
+        try c.encode(strength, forKey: .strength)
+        try c.encode(confirmClick, forKey: .confirmClick)
     }
 }
 
@@ -108,11 +139,11 @@ public struct Settings: Codable, Equatable, Sendable {
     public static let defaults = Settings(
         enabled: true,
         zones: [
-            .close: ZoneSetting(feel: .frenzy, reach: .mid),
-            .minimize: ZoneSetting(feel: .calm, reach: .near),
-            .zoom: ZoneSetting(feel: .tick, reach: .near),
-            .buttons: ZoneSetting(feel: .off, confirmClick: false),
-            .edges: ZoneSetting(feel: .tick, confirmClick: false),
+            .close: ZoneSetting(feel: .frenzy, radius: 90, strength: 4),
+            .minimize: ZoneSetting(feel: .calm, radius: 40, strength: 2),
+            .zoom: ZoneSetting(feel: .tick, radius: 40, strength: 2),
+            .buttons: ZoneSetting(feel: .off, strength: 1, confirmClick: false),
+            .edges: ZoneSetting(feel: .tick, strength: 2, confirmClick: false),
         ],
         showGadget: true,
         gadgetFloats: false,
