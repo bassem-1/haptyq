@@ -27,22 +27,30 @@ update. toggle haptyq off and on in system settings › privacy & security › a
 
 ## use
 
-click the menu bar icon (three yellow bars) to open the panel:
+open haptyq like any app (spotlight, launchpad or /Applications). its window has two halves:
 
-- each zone (close, minimize, full screen, other buttons, window edges) has a signal bar. click a cell to set how strong
-  the feel is, from off to frenzy.
-- click a zone's name to see its reach, whether a click needs to be confirmed, and a "feel it" preview.
-- the desktop gadget shows the state of haptyq. click it to pause or resume, drag it to move it, and right-click it for
-  more options.
+- **playground** (left): a mock window with close, minimize and full screen buttons. rings show how far out each one
+  reacts. move the cursor toward them to feel it live.
+- **inspector** (right): pick a button, then set its **rhythm** (off, tick, calm, ramp, frenzy), **reach** (10-300 pt),
+  **strength** (1-4), whether a real click gets a confirmation pattern, and **feel it** to preview it.
+
+close the window and haptyq keeps running in the menu bar (three yellow bars). open the app again to get the window
+back. the desktop gadget shows whether haptyq is on: click to pause or resume, drag to move, right-click for options.
 
 ## build from source
 
-haptyq is a swift package. with xcode or the command line tools installed:
+haptyq is a swift package. with xcode or the command line tools (`xcode-select --install`) installed:
 
-    swift build -c release
+    git clone https://github.com/bassem-1/haptyq
+    cd haptyq
+    scripts/bundle.sh
+    open dist/haptyq.app
+
+apps you build yourself are not quarantined, so gatekeeper will not block them. to run the tests:
+
     swift test
 
-to build the app bundle and zip it the same way the releases are built:
+to build a universal (apple silicon and intel) bundle the way releases are built:
 
     scripts/bundle.sh --universal
 
