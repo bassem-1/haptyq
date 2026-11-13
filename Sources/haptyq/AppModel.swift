@@ -5,17 +5,25 @@ import HaptyqKit
 
 @MainActor
 final class AppModel: ObservableObject {
+    /// One model for the app delegate, the popover and the window, so no state is duplicated.
+    static let shared = AppModel()
+
+    /// Zone shown in the window's inspector. Window-only state.
+    @Published var selected: Zone = .close
     @Published var settings: HaptyqKit.Settings
     @Published private(set) var trusted: Bool
     /// Not @Published: pulses arrive at up to 30 Hz and must not re-render every observer of the model.
     let pulses = PassthroughSubject<Void, Never>()
     @Published private(set) var launchAtLogin: Bool
     @Published var notice: String?
+    /// Mirrors engine.isRunning (not observable itself) for the status line.
+    @Published private(set) var running = false
 
     let engine = HaptyqEngine()
     private var gadget: GadgetController?
     private var bag = Set<AnyCancellable>()
     private var trustTimer: Timer?
+    private lazy var mainWindow = MainWindowController(model: self)
 
     var hardwareAvailable: Bool { engine.hardwareAvailable }
 
@@ -32,9 +40,10 @@ final class AppModel: ObservableObject {
 
         engine.onPulse = { [weak self] in self?.pulses.send() }
         engine.apply(loaded)
+        running = engine.isRunning
 
         $settings.dropFirst()
-            .sink { [weak self] s in self?.engine.apply(s) }
+            .sink { [weak self] s in self?.engine.apply(s); self?.syncRunning() }
             .store(in: &bag)
         $settings.dropFirst()
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
@@ -49,7 +58,10 @@ final class AppModel: ObservableObject {
             .store(in: &bag)
 
         gadget = GadgetController(model: self)
+        scheduleTrustPoll()
     }
+
+    func openWindow() { mainWindow.show() }
 
     func binding(for zone: Zone) -> Binding<ZoneSetting> {
         Binding(get: { [weak self] in self?.settings[zone] ?? HaptyqKit.Settings.defaults[zone] },
@@ -65,28 +77,36 @@ final class AppModel: ObservableObject {
         Permissions.openSettings()
     }
 
+    /// Manual re-check (popover appearing, "i did it"). Always nudges the engine.
     func refreshTrust() {
         let now = Permissions.isTrusted
         if now != trusted { trusted = now }
-        // also when revoked, so a running tap is torn down
         engine.refresh()
+        syncRunning()
+        scheduleTrustPoll()
     }
 
-    /// Poll while the permission banner is visible; dismisses itself once access is granted.
-    func startTrustPolling() {
-        guard trustTimer == nil else { return }
-        trustTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.refreshTrust()
-                if self.trusted { self.stopTrustPolling() }
-            }
-        }
+    private func syncRunning() {
+        if running != engine.isRunning { running = engine.isRunning }
     }
 
-    func stopTrustPolling() {
+    /// Always-on poll, independent of any ui: every 2 s while untrusted, every 10 s while trusted (revocation).
+    private func scheduleTrustPoll() {
         trustTimer?.invalidate()
-        trustTimer = nil
+        let timer = Timer(timeInterval: trusted ? 10 : 2, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.pollTrust() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        trustTimer = timer
+    }
+
+    private func pollTrust() {
+        let now = Permissions.isTrusted
+        guard now != trusted else { return }
+        trusted = now
+        engine.refresh()
+        syncRunning()
+        scheduleTrustPoll()
     }
 
     // MARK: misc

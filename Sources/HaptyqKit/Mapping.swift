@@ -8,11 +8,17 @@ private func clamped(_ ladder: [Int32], _ i: Int) -> Int32? {
     ladder.isEmpty ? nil : ladder[min(max(i, 0), ladder.count - 1)]
 }
 
-/// Ramping config for a proximity zone. nil for `.off` and for `.tick` (a tick is a single tap, see `proximityTapID`).
+/// Index of the strongest ladder rung a setting may use (strength 1...4 -> 0...3, clamped to the ladder).
+private func topIndex(_ setting: ZoneSetting, _ ladder: [Int32]) -> Int {
+    min(max(setting.strength - 1, 0), max(ladder.count - 1, 0))
+}
+
+/// Ramping config for a proximity zone. nil for `.off` and for `.tick` (a tick is a single tap, see `tickTapID`).
 public func proximityConfig(for setting: ZoneSetting, ladder: [Int32]) -> ProximityConfig? {
     guard !ladder.isEmpty else { return nil }
+    let hi = topIndex(setting, ladder)
     var c = ProximityConfig()
-    c.radius = setting.reach.points
+    c.radius = setting.radius
     c.idleMs = 250
     c.hoverTick = false
     switch setting.feel {
@@ -20,39 +26,51 @@ public func proximityConfig(for setting: ZoneSetting, ladder: [Int32]) -> Proxim
         return nil
     case .calm:
         c.slowestMs = 260; c.fastestMs = 110; c.curve = 2.2
-        c.ids = Array(ladder[0...min(1, ladder.count - 1)])
+        c.ids = Array(ladder[max(0, hi - 1)...hi])
     case .ramp:
         c.slowestMs = 200; c.fastestMs = 45; c.curve = 1.8
-        c.ids = ladder
+        c.ids = Array(ladder[0...hi])
     case .frenzy:
         c.slowestMs = 120; c.fastestMs = 16; c.curve = 1.1
-        c.ids = Array(ladder[(ladder.count / 2)...])
+        c.ids = Array(ladder[max(0, hi - 1)...hi])
     }
     return c
 }
 
-/// Id of the single tap played when the cursor enters a tick-feel traffic-light button.
-public func proximityTapID(ladder: [Int32]) -> Int32? { clamped(ladder, 1) }
+/// Id of the single tap played when the cursor enters a button (tick feel, or any button tap). nil when off.
+public func tickTapID(setting: ZoneSetting, ladder: [Int32]) -> Int32? {
+    guard setting.feel != .off else { return nil }
+    return clamped(ladder, setting.strength - 1)
+}
 
 /// Id of the tap played when entering a generic button.
-public func buttonTapID(feel: Feel, ladder: [Int32]) -> Int32? {
-    switch feel {
-    case .off: nil
-    case .tick: clamped(ladder, 0)
-    case .calm: clamped(ladder, 1)
-    case .ramp: clamped(ladder, 2)
-    case .frenzy: ladder.last
-    }
+public func buttonTapID(setting: ZoneSetting, ladder: [Int32]) -> Int32? {
+    tickTapID(setting: setting, ladder: ladder)
 }
 
 /// Resize ratchet: one pulse of `id` per `step` points dragged.
-public func edgeRatchet(feel: Feel, ladder: [Int32]) -> (step: Double, id: Int32)? {
-    guard let id = buttonTapID(feel: feel, ladder: ladder) else { return nil }
-    switch feel {
+public func edgeRatchet(setting: ZoneSetting, ladder: [Int32]) -> (step: Double, id: Int32)? {
+    guard let id = tickTapID(setting: setting, ladder: ladder) else { return nil }
+    switch setting.feel {
     case .off: return nil
     case .tick, .calm: return (40, id)
     case .ramp: return (25, id)
     case .frenzy: return (14, id)
+    }
+}
+
+/// Re-arming trigger for hover previews of tap-style zones: fires once when the distance reaches 0,
+/// and again only after it has gone back above 0 (or to nil).
+public struct HoverTrigger: Equatable {
+    private var armed = true
+    public init() {}
+
+    /// Returns true when a tap should fire for this distance sample.
+    public mutating func update(distance: Double?) -> Bool {
+        guard let d = distance, d <= 0 else { armed = true; return false }
+        guard armed else { return false }
+        armed = false
+        return true
     }
 }
 

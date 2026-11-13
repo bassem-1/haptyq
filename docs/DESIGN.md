@@ -269,8 +269,7 @@ legacy `reach` json → radius, out-of-range radius/strength clamp, missing stre
   - footer row (11pt): `desktop gadget` switch, `float` switch, `launch at login` switch, `quit` text button, version.
 - **popover**: simplify to header + master switch, the 5 zone rows with signal bars (quick change), `customize…` text
   button (opens the window), and quit. remove the expandable rows and reach pills.
-- **gadget**: right-click menu gains `customize…`. double-click opens the window (single click still toggles; wait
-  for double-click interval before toggling only if that keeps it snappy, otherwise use right-click only).
+- **gadget**: right-click menu gains `customize…`. single click toggles; extra clicks of a double-click are ignored.
 - **permission fix**: `AppModel` polls `Permissions.isTrusted` every 2 s while untrusted, regardless of which ui is
   open, and calls `engine.refresh()` on change. stop polling once trusted; resume if it is revoked (check every 10 s
   while trusted, cheap).

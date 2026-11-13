@@ -33,7 +33,12 @@ final class GadgetPanel: NSPanel {
         case .leftMouseUp:
             guard downMouse != nil else { return }
             downMouse = nil
-            if moved { onMoved?(frame.origin) } else { onClick?() }
+            if moved {
+                onMoved?(frame.origin)
+            } else if event.clickCount == 1 {
+                // later clicks of a double-click are ignored so one quick double tap can't toggle twice
+                onClick?()
+            }
         case .rightMouseDown:
             if let menu = menuBuilder?(), let view = contentView {
                 NSMenu.popUpContextMenu(menu, with: event, for: view)
@@ -128,6 +133,8 @@ final class GadgetController {
         let menu = NSMenu()
         menu.appearance = NSAppearance(named: .darkAqua)
         let floats = model?.settings.gadgetFloats ?? false
+        menu.addItem(ActionItem("customize…") { [weak self] in self?.model?.openWindow() })
+        menu.addItem(.separator())
         menu.addItem(ActionItem("hide gadget") { [weak self] in self?.model?.settings.showGadget = false })
         menu.addItem(ActionItem("float above windows", checked: floats) { [weak self] in
             self?.model?.settings.gadgetFloats.toggle()

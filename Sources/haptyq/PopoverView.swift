@@ -3,7 +3,6 @@ import HaptyqKit
 
 struct PopoverView: View {
     @ObservedObject var model: AppModel
-    @State private var expanded: Zone?
     @State private var hovered: Zone?
     @State private var grantClicked = false
 
@@ -21,11 +20,9 @@ struct PopoverView: View {
             }
             caption
             divider
-            VStack(spacing: 0) {
-                toggleRow("desktop gadget", $model.settings.showGadget)
-                toggleRow("gadget floats above windows", $model.settings.gadgetFloats)
-                toggleRow("launch at login", Binding(get: { model.launchAtLogin },
-                                                     set: { model.setLaunchAtLogin($0) }))
+            HStack {
+                TextButton(title: "customize…") { model.openWindow() }.padding(.leading, -6)
+                Spacer()
             }
             divider
             footer
@@ -57,14 +54,21 @@ struct PopoverView: View {
     private var zoneList: some View {
         VStack(spacing: 0) {
             ForEach(Zone.allCases) { zone in
-                ZoneRow(zone: zone,
-                        setting: model.binding(for: zone),
-                        expanded: expanded == zone,
-                        toggle: { expanded = expanded == zone ? nil : zone },
-                        hover: { inside in
-                            if inside { hovered = zone } else if hovered == zone { hovered = nil }
-                        },
-                        preview: { model.preview(zone) })
+                HStack(spacing: 0) {
+                    Text(zone.title)
+                        .font(Theme.font(13))
+                        .foregroundColor(Theme.fg)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    SignalBar(feel: model.binding(for: zone).feel, label: "\(zone.title) feel")
+                }
+                .frame(height: Theme.row)
+                .padding(.horizontal, 8)
+                .background(RoundedRectangle(cornerRadius: Theme.controlRadius)
+                    .fill(hovered == zone ? Theme.wash : .clear))
+                .padding(.horizontal, -8)
+                .onHover { inside in
+                    if inside { hovered = zone } else if hovered == zone { hovered = nil }
+                }
             }
         }
         .opacity(enabled ? 1 : 0.32)
@@ -73,7 +77,7 @@ struct PopoverView: View {
 
     /// One shared line so hovering never shifts the layout.
     private var caption: some View {
-        Text(hovered?.detail ?? model.notice ?? " ")
+        Text(hovered?.detail ?? " ")
             .font(Theme.font(11))
             .foregroundColor(Theme.fg2)
             .lineLimit(1)
@@ -100,8 +104,6 @@ struct PopoverView: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(RoundedRectangle(cornerRadius: Theme.radius).strokeBorder(Theme.line, lineWidth: 1))
-        .onAppear { model.startTrustPolling() }
-        .onDisappear { model.stopTrustPolling() }
     }
 
     private var hardwareBanner: some View {
@@ -124,91 +126,6 @@ struct PopoverView: View {
 
     private var divider: some View {
         Rectangle().fill(Theme.line).frame(height: 1).padding(.vertical, 8)
-    }
-
-    private func toggleRow(_ title: String, _ isOn: Binding<Bool>) -> some View {
-        HStack {
-            Text(title).font(Theme.font(13)).foregroundColor(Theme.fg)
-            Spacer(minLength: 8)
-            HaptyqSwitch(isOn: isOn, label: title)
-        }
-        .frame(height: Theme.row)
-    }
-}
-
-private struct ZoneRow: View {
-    let zone: Zone
-    @Binding var setting: ZoneSetting
-    let expanded: Bool
-    let toggle: () -> Void
-    let hover: (Bool) -> Void
-    let preview: () -> Void
-    @State private var rowHover = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Text(zone.title)
-                    .font(Theme.font(13, expanded ? .medium : .regular))
-                    .foregroundColor(Theme.fg)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(height: Theme.row)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: toggle)
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel("\(zone.title), \(expanded ? "collapse" : "expand")")
-                SignalBar(feel: $setting.feel, label: "\(zone.title) feel")
-            }
-            if expanded {
-                VStack(spacing: 0) {
-                    if zone.allowsReach { reachRow }
-                    if zone.usesProximity { confirmRow }
-                    HStack {
-                        TextButton(title: "feel it", action: preview).padding(.leading, -6)
-                        Spacer()
-                    }
-                    .frame(height: Theme.row)
-                }
-            }
-        }
-        .padding(.horizontal, 8)
-        .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(rowHover ? Theme.wash : .clear))
-        .padding(.horizontal, -8)
-        .onHover { rowHover = $0; hover($0) }
-    }
-
-    private var reachRow: some View {
-        HStack(spacing: 0) {
-            Text("reach").font(Theme.font(11)).foregroundColor(Theme.fg2)
-            Spacer()
-            ForEach(Array(Reach.allCases.enumerated()), id: \.element) { i, r in
-                if i > 0 { Text("·").font(Theme.font(11)).foregroundColor(Theme.dim).padding(.horizontal, 2) }
-                Button { setting.reach = r } label: {
-                    Text(r.title)
-                        .font(Theme.font(11))
-                        .foregroundColor(setting.reach == r ? Theme.bg : Theme.fg2)
-                        .padding(.horizontal, 6)
-                        .frame(height: 20)
-                        .background(RoundedRectangle(cornerRadius: Theme.controlRadius)
-                            .fill(setting.reach == r ? Theme.fg : .clear))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .haptyqFocus()
-                .accessibilityLabel("reach \(r.title)")
-                .accessibilityAddTraits(setting.reach == r ? [.isButton, .isSelected] : .isButton)
-            }
-        }
-        .frame(height: Theme.row)
-    }
-
-    private var confirmRow: some View {
-        HStack {
-            Text("confirm click").font(Theme.font(11)).foregroundColor(Theme.fg2)
-            Spacer()
-            HaptyqSwitch(isOn: $setting.confirmClick, label: "\(zone.title) confirm click")
-        }
-        .frame(height: Theme.row)
     }
 }
 

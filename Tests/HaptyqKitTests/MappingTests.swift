@@ -4,61 +4,81 @@ import Testing
 @testable import HaptyqKit
 
 private let ladder: [Int32] = [1, 3, 4, 6]
-private func cfg(_ f: Feel, _ r: Reach = .mid, _ l: [Int32] = ladder) -> ProximityConfig? {
-    proximityConfig(for: ZoneSetting(feel: f, reach: r), ladder: l)
+private func zs(_ f: Feel, r: Double = 90, s: Int = 3) -> ZoneSetting { ZoneSetting(feel: f, radius: r, strength: s) }
+private func cfg(_ f: Feel, r: Double = 90, s: Int = 3, _ l: [Int32] = ladder) -> ProximityConfig? {
+    proximityConfig(for: zs(f, r: r, s: s), ladder: l)
 }
 
 @Test func offAndTickHaveNoRamp() {
-    #expect(cfg(.off) == nil)
-    #expect(cfg(.tick) == nil)
-    #expect(proximityTapID(ladder: ladder) == 3)
+    for s in 1...4 {
+        #expect(cfg(.off, s: s) == nil)
+        #expect(cfg(.tick, s: s) == nil)
+    }
+    #expect(tickTapID(setting: zs(.off), ladder: ladder) == nil)
 }
 
-@Test func calmRow() throws {
-    let c = try #require(cfg(.calm, .near))
-    #expect(c.radius == 40 && c.slowestMs == 260 && c.fastestMs == 110 && c.curve == 2.2)
-    #expect(c.ids == [1, 3] && c.idleMs == 250)
+@Test func tickTapFollowsStrength() {
+    for (s, id) in [(1, Int32(1)), (2, 3), (3, 4), (4, 6)] {
+        #expect(tickTapID(setting: zs(.tick, s: s), ladder: ladder) == id)
+        #expect(buttonTapID(setting: zs(.calm, s: s), ladder: ladder) == id)
+    }
 }
 
-@Test func rampRow() throws {
-    let c = try #require(cfg(.ramp, .far))
+@Test func calmRows() throws {
+    let c = try #require(cfg(.calm, r: 40, s: 3))
+    #expect(c.radius == 40 && c.slowestMs == 260 && c.fastestMs == 110 && c.curve == 2.2 && c.idleMs == 250)
+    #expect(c.ids == [3, 4])
+    #expect(try #require(cfg(.calm, s: 1)).ids == [1])
+    #expect(try #require(cfg(.calm, s: 4)).ids == [4, 6])
+}
+
+@Test func rampRows() throws {
+    let c = try #require(cfg(.ramp, r: 160, s: 4))
     #expect(c.radius == 160 && c.slowestMs == 200 && c.fastestMs == 45 && c.curve == 1.8)
     #expect(c.ids == ladder)
+    #expect(try #require(cfg(.ramp, s: 1)).ids == [1])
+    #expect(try #require(cfg(.ramp, s: 2)).ids == [1, 3])
 }
 
-@Test func frenzyRow() throws {
-    let c = try #require(cfg(.frenzy, .mid))
+@Test func frenzyRows() throws {
+    let c = try #require(cfg(.frenzy, s: 4))
     #expect(c.radius == 90 && c.slowestMs == 120 && c.fastestMs == 16 && c.curve == 1.1)
     #expect(c.ids == [4, 6])
+    #expect(try #require(cfg(.frenzy, s: 1)).ids == [1])
+    #expect(try #require(cfg(.frenzy, s: 2)).ids == [1, 3])
+}
+
+@Test func radiusComesFromSetting() throws {
+    #expect(try #require(cfg(.ramp, r: 250)).radius == 250)
+    #expect(try #require(cfg(.calm, r: 10)).radius == 10)
 }
 
 @Test func shortLaddersClamp() throws {
-    #expect(try #require(cfg(.calm, .mid, [5])).ids == [5])
-    #expect(try #require(cfg(.calm, .mid, [5, 7])).ids == [5, 7])
-    #expect(try #require(cfg(.ramp, .mid, [5, 7])).ids == [5, 7])
-    #expect(try #require(cfg(.frenzy, .mid, [5])).ids == [5])
-    #expect(try #require(cfg(.frenzy, .mid, [5, 7])).ids == [7])
-    #expect(cfg(.frenzy, .mid, []) == nil)
-    #expect(proximityTapID(ladder: [5]) == 5)
-    #expect(buttonTapID(feel: .ramp, ladder: [5, 7]) == 7)
-    #expect(buttonTapID(feel: .ramp, ladder: []) == nil)
-}
-
-@Test func buttonTapIDs() {
-    #expect(buttonTapID(feel: .off, ladder: ladder) == nil)
-    #expect(buttonTapID(feel: .tick, ladder: ladder) == 1)
-    #expect(buttonTapID(feel: .calm, ladder: ladder) == 3)
-    #expect(buttonTapID(feel: .ramp, ladder: ladder) == 4)
-    #expect(buttonTapID(feel: .frenzy, ladder: ladder) == 6)
+    #expect(try #require(cfg(.calm, [5])).ids == [5])
+    #expect(try #require(cfg(.calm, s: 4, [5, 7])).ids == [5, 7])
+    #expect(try #require(cfg(.ramp, s: 4, [5, 7])).ids == [5, 7])
+    #expect(try #require(cfg(.frenzy, s: 4, [5])).ids == [5])
+    #expect(try #require(cfg(.frenzy, s: 4, [5, 7])).ids == [5, 7])
+    #expect(cfg(.frenzy, []) == nil)
+    #expect(tickTapID(setting: zs(.tick, s: 4), ladder: [5]) == 5)
+    #expect(tickTapID(setting: zs(.tick, s: 4), ladder: []) == nil)
 }
 
 @Test func edgeRatchets() throws {
-    #expect(edgeRatchet(feel: .off, ladder: ladder) == nil)
-    let expected: [(Feel, Double, Int32)] = [(.tick, 40, 1), (.calm, 40, 3), (.ramp, 25, 4), (.frenzy, 14, 6)]
-    for (f, step, id) in expected {
-        let r = try #require(edgeRatchet(feel: f, ladder: ladder))
-        #expect(r.step == step && r.id == id)
+    #expect(edgeRatchet(setting: zs(.off), ladder: ladder) == nil)
+    let expected: [(Feel, Double)] = [(.tick, 40), (.calm, 40), (.ramp, 25), (.frenzy, 14)]
+    for (f, step) in expected {
+        let r = try #require(edgeRatchet(setting: zs(f, s: 2), ladder: ladder))
+        #expect(r.step == step && r.id == 3)
     }
+    #expect(try #require(edgeRatchet(setting: zs(.tick, s: 4), ladder: ladder)).id == 6)
+}
+
+@Test func hoverTriggerRearms() {
+    var t = HoverTrigger()
+    let samples: [Double?] = [nil, 12, 0, 0, -1, 3, 0, nil, 0]
+    let fired = samples.map { t.update(distance: $0) }
+    #expect(fired == [false, false, true, false, false, false, true, false, true])
 }
 
 @Test func ratchetStepCounting() {

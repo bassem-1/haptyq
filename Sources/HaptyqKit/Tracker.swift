@@ -112,7 +112,7 @@ final class Tracker {
 
     private func drag(_ p: CGPoint) {
         cursor = p
-        guard resizing, let r = edgeRatchet(feel: settings[.edges].feel, ladder: settings.ladder) else { return }
+        guard resizing, let r = edgeRatchet(setting: settings[.edges], ladder: settings.ladder) else { return }
         accumulated += hypot(Double(p.x - lastDrag.x), Double(p.y - lastDrag.y))
         lastDrag = p
         let steps = ratchetSteps(accumulated: accumulated, step: r.step)
@@ -160,8 +160,7 @@ final class Tracker {
             }
         }
         for z in nowInside.subtracting(insideTick) {
-            if let id = proximityTapID(ladder: settings.ladder) { actuator?.fire(id: id) }
-            _ = z
+            if let id = tickTapID(setting: settings[z], ladder: settings.ladder) { actuator?.fire(id: id) }
         }
         insideTick = nowInside
         if let n = nearestTarget(candidates) {
@@ -253,7 +252,7 @@ final class Tracker {
         if let el = hit.element, string(el, kAXRoleAttribute) == kAXButtonRole, hit.trafficZone == nil {
             if lastButton == nil || !CFEqual(lastButton!, el) {
                 lastButton = el
-                if let id = buttonTapID(feel: settings[.buttons].feel, ladder: settings.ladder) { actuator?.fire(id: id) }
+                if let id = buttonTapID(setting: settings[.buttons], ladder: settings.ladder) { actuator?.fire(id: id) }
             }
         } else {
             lastButton = nil

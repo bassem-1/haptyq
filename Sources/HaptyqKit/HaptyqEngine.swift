@@ -65,6 +65,8 @@ public final class HaptyqEngine {
 
     private var previewProximity: ProximityEngine?
     private var previewTimer: DispatchSourceTimer?
+    private var hoverProximity: ProximityEngine?
+    private var hoverTrigger = HoverTrigger()
 
     public init() {
         let a = Actuator()
@@ -85,6 +87,7 @@ public final class HaptyqEngine {
         self.settings = settings
         tracker.configure(settings)
         if !settings.enabled { cancelPreview() }
+        hoverProximity?.update(distance: nil, config: nil) // old config may be stale; next hover resends
         reconcile()
     }
 
@@ -98,11 +101,12 @@ public final class HaptyqEngine {
     /// Play a ~1.2 s simulated approach for a zone/setting so the user can feel it from the ui.
     public func preview(_ zone: Zone, _ setting: ZoneSetting) {
         cancelPreview()
+        cancelHover()
         guard let actuator, setting.feel != .off else { return }
         let ladder = settings.ladder
 
         if zone == .edges {
-            guard let r = edgeRatchet(feel: setting.feel, ladder: ladder) else { return }
+            guard let r = edgeRatchet(setting: setting, ladder: ladder) else { return }
             var n = 0
             schedule(intervalMs: 70) { [weak self] in
                 n += 1
@@ -112,7 +116,7 @@ public final class HaptyqEngine {
             return
         }
         if !zone.usesProximity || setting.feel == .tick {
-            let id = zone.usesProximity ? proximityTapID(ladder: ladder) : buttonTapID(feel: setting.feel, ladder: ladder)
+            let id = tickTapID(setting: setting, ladder: ladder)
             if let id { actuator.fire(id: id) }
             return
         }
@@ -131,9 +135,40 @@ public final class HaptyqEngine {
         }
     }
 
+    /// Whether the event tap is live.
+    public var isRunning: Bool { context != nil }
+
+    /// Live preview from the window's playground (spec 8.3). Uses the zone's setting from the last `apply`;
+    /// needs hardware only (not the tap, permission or `enabled`). nil zone or distance silences it.
+    public func hover(_ zone: Zone?, distance: Double?) {
+        guard let zone, let distance, let actuator, zone != .edges else {
+            cancelHover()
+            cancelPreview()
+            return
+        }
+        cancelPreview() // a running preview and a hover must not overlap
+        let setting = settings[zone]
+        guard setting.feel != .off else { cancelHover(); return }
+        if zone.usesProximity && setting.feel != .tick {
+            guard let cfg = proximityConfig(for: setting, ladder: settings.ladder), distance < cfg.radius else {
+                hoverProximity?.update(distance: nil, config: nil)
+                return
+            }
+            let engine = hoverProximity ?? ProximityEngine(actuator: actuator, config: cfg)
+            hoverProximity = engine
+            engine.update(distance: distance, config: cfg)
+        } else {
+            hoverProximity?.update(distance: nil, config: nil)
+            if hoverTrigger.update(distance: distance), let id = tickTapID(setting: setting, ladder: settings.ladder) {
+                actuator.fire(id: id)
+            }
+        }
+    }
+
     /// Stop everything (app quitting).
     public func shutdown() {
         cancelPreview()
+        cancelHover()
         teardownTap()
         proximity?.update(distance: nil, config: nil)
     }
@@ -185,6 +220,12 @@ public final class HaptyqEngine {
         t.setEventHandler(handler: block)
         t.resume()
         previewTimer = t
+    }
+
+    private func cancelHover() {
+        hoverProximity?.update(distance: nil, config: nil)
+        hoverProximity = nil
+        hoverTrigger = HoverTrigger()
     }
 
     private func cancelPreview() {
