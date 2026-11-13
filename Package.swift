@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "TrackpadHaptics",
+    name: "haptyq",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "haptyk", targets: ["haptyk"]),
+        .executable(name: "haptyq", targets: ["haptyq"]),
         .library(name: "HapticCore", targets: ["HapticCore"]),
         .executable(name: "haptic-lab", targets: ["haptic-lab"]),
         .executable(name: "haptic-web", targets: ["haptic-web"]),
     ],
     targets: [
         .target(name: "HapticCore"),
-        .target(name: "HaptykKit", dependencies: ["HapticCore"]),
-        .executableTarget(name: "haptyk", dependencies: ["HaptykKit"]),
+        .target(name: "HaptyqKit", dependencies: ["HapticCore"]),
+        .executableTarget(name: "haptyq", dependencies: ["HaptyqKit"]),
         .executableTarget(name: "haptic-lab", dependencies: ["HapticCore"]),
         .executableTarget(name: "haptic-web", dependencies: ["HapticCore"]),
-        .testTarget(name: "HaptykKitTests", dependencies: ["HaptykKit"]),
+        .testTarget(name: "HaptyqKitTests", dependencies: ["HaptyqKit"]),
     ]
 )

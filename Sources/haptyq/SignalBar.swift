@@ -1,5 +1,5 @@
 import SwiftUI
-import HaptykKit
+import HaptyqKit
 
 /// The signature control: five cells, cell i sets Feel(level: i).
 struct SignalBar: View {

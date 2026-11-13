@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HaptykKit
+@testable import HaptyqKit
 
 @Test func defaultsAreSane() {
     #expect(Settings.defaults[.close].feel == .frenzy)
@@ -40,7 +40,7 @@ import Testing
 }
 
 @Test func storeRoundTrip() throws {
-    let suite = "haptyk.tests.\(UUID().uuidString)"
+    let suite = "haptyq.tests.\(UUID().uuidString)"
     let d = try #require(UserDefaults(suiteName: suite))
     defer { d.removePersistentDomain(forName: suite) }
     var s = Settings.defaults

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Capsule switch, 34x18.
-struct HaptykSwitch: View {
+struct HaptyqSwitch: View {
     @Binding var isOn: Bool
     let label: String
 
@@ -20,7 +20,7 @@ struct HaptykSwitch: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .haptykFocus()
+        .haptyqFocus()
         .accessibilityLabel(label)
         .accessibilityValue(isOn ? "on" : "off")
         .modifier(ToggleTrait())

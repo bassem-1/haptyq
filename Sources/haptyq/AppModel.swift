@@ -1,18 +1,18 @@
 import AppKit
 import Combine
 import SwiftUI
-import HaptykKit
+import HaptyqKit
 
 @MainActor
 final class AppModel: ObservableObject {
-    @Published var settings: HaptykKit.Settings
+    @Published var settings: HaptyqKit.Settings
     @Published private(set) var trusted: Bool
     /// Not @Published: pulses arrive at up to 30 Hz and must not re-render every observer of the model.
     let pulses = PassthroughSubject<Void, Never>()
     @Published private(set) var launchAtLogin: Bool
     @Published var notice: String?
 
-    let engine = HaptykEngine()
+    let engine = HaptyqEngine()
     private var gadget: GadgetController?
     private var bag = Set<AnyCancellable>()
     private var trustTimer: Timer?
@@ -52,7 +52,7 @@ final class AppModel: ObservableObject {
     }
 
     func binding(for zone: Zone) -> Binding<ZoneSetting> {
-        Binding(get: { [weak self] in self?.settings[zone] ?? HaptykKit.Settings.defaults[zone] },
+        Binding(get: { [weak self] in self?.settings[zone] ?? HaptyqKit.Settings.defaults[zone] },
                 set: { [weak self] in self?.settings[zone] = $0 })
     }
 

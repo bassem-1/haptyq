@@ -9,7 +9,7 @@ enum PointerEvent { case move, down, up, drag }
 final class Tracker {
     private struct Target { var zone: Zone; var frame: CGRect }
 
-    private let queue = DispatchQueue(label: "haptyk.tracker", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "haptyq.tracker", qos: .userInteractive)
     private let proximity: ProximityEngine?
     private let player: PatternPlayer?
     private let actuator: Actuator?

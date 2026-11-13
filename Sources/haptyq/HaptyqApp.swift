@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct HaptykApp: App {
+struct HaptyqApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
 
@@ -27,6 +27,6 @@ private struct MenuBarLabel: View {
 
     var body: some View {
         Image(nsImage: MenuBarIcon.image(enabled: model.settings.enabled))
-            .accessibilityLabel("haptyk")
+            .accessibilityLabel("haptyq")
     }
 }

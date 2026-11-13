@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>haptyk</string>
+    <string>haptyq</string>
     <key>CFBundleDisplayName</key>
-    <string>haptyk</string>
+    <string>haptyq</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.bassem-1.haptyk</string>
+    <string>io.github.bassem-1.haptyq</string>
     <key>CFBundleExecutable</key>
-    <string>haptyk</string>
+    <string>haptyq</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -29,6 +29,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>© 2026 haptyk contributors. mit license.</string>
+    <string>© 2026 haptyq contributors. mit license.</string>
 </dict>
 </plist>

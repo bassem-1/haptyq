@@ -1,7 +1,7 @@
 import AppKit
 import Combine
 import SwiftUI
-import HaptykKit
+import HaptyqKit
 
 /// Borderless panel that tells a click from a drag itself (< 3pt of travel = click).
 final class GadgetPanel: NSPanel {
@@ -101,7 +101,7 @@ final class GadgetController {
         p.isMovableByWindowBackground = false // dragging is handled in GadgetPanel
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         p.appearance = NSAppearance(named: .darkAqua)
-        p.title = "haptyk"
+        p.title = "haptyq"
         let host = NSHostingView(rootView: GadgetView(model: model))
         host.frame = NSRect(origin: .zero, size: Self.size)
         p.contentView = host

@@ -1,9 +1,9 @@
 import CoreGraphics
 import Foundation
 
-// Shared contract between the engine (HaptykKit) and the ui (haptyk). Change only with care.
+// Shared contract between the engine (HaptyqKit) and the ui (haptyq). Change only with care.
 
-/// A place on screen haptyk reacts to.
+/// A place on screen haptyq reacts to.
 public enum Zone: String, Codable, CaseIterable, Identifiable, CodingKeyRepresentable, Sendable {
     case close, minimize, zoom, buttons, edges
 

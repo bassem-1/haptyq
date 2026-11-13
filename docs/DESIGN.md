@@ -1,6 +1,6 @@
-# haptyk: design spec
+# haptyq: design spec
 
-haptyk is a macOS 13+ menu bar app that makes the force touch trackpad react to where the cursor is.
+haptyq is a macOS 13+ menu bar app that makes the force touch trackpad react to where the cursor is.
 example: near the red close button the trackpad pulses faster and harder ("frenzy"), while near
 full screen it only taps once ("tick"). it uses private MultitouchSupport apis, so it isn't on the app store.
 it's distributed as an ad-hoc signed zip on github releases (no paid apple developer account).
@@ -10,10 +10,10 @@ it's distributed as an ad-hoc signed zip on github releases (no paid apple devel
 - swift 5 language mode (tools 5.9), macOS 13 deployment target. local toolchain = command line tools only (no xcode):
   xctest is unavailable, so tests use **swift-testing** (`import Testing`, `@Test`, `#expect`).
 - each agent builds with its own scratch path to avoid clobbering: `swift build --scratch-path .build/<agent>`.
-- only edit files you own (see section 7). `Sources/HaptykKit/Model.swift` is frozen: don't edit it, tell the lead what you need.
+- only edit files you own (see section 7). `Sources/HaptyqKit/Model.swift` is frozen: don't edit it, tell the lead what you need.
 - no new third-party dependencies.
 - no force unwraps on runtime data, no `try!`, no `fatalError` outside truly impossible states.
-- leave `print` debugging out. use `os.Logger(subsystem: "io.github.bassem-1.haptyk", category: ...)` if needed.
+- leave `print` debugging out. use `os.Logger(subsystem: "io.github.bassem-1.haptyq", category: ...)` if needed.
 - keep comments short. explain why, not what.
 
 ## 1. brand & visual language
@@ -31,7 +31,7 @@ the goal is to look designed, not generated. restraint over decoration.
 - **no:** emoji, gradients, drop shadows, glassmorphism, sf symbols in content (exception: none). the menu bar glyph is custom-drawn.
 - **motion:** only functional motion. a pulse indicator flashes when a haptic fires (opacity 1 → 0.16 over 180ms).
   no bouncy springs, nothing animates on idle.
-- force dark appearance on all haptyk windows (`NSAppearance(named: .darkAqua)`) so system controls never render light.
+- force dark appearance on all haptyq windows (`NSAppearance(named: .darkAqua)`) so system controls never render light.
 
 ### signature control: the signal bar
 
@@ -49,7 +49,7 @@ the feel name in 11pt secondary text, e.g. `frenzy`. this one control should be 
 
 ### 2.2 popover (width 300)
 ```
-haptyk                                   [■■ on]
+haptyq                                   [■■ on]
 haptics that tell you where you are.
 
 close            ▬ ■ ■ ■ ■   frenzy
@@ -64,14 +64,14 @@ launch at login                      [off]
 ─────────────────────────────────────────
 quit                                v0.1.0
 ```
-- header: `haptyk` 13 medium, tagline 11 secondary. master switch top-right (custom capsule switch, see 2.4).
+- header: `haptyq` 13 medium, tagline 11 secondary. master switch top-right (custom capsule switch, see 2.4).
 - zone row: title left, signal bar right. hovering a row shows the zone's `detail` as a caption under the list
   (single shared caption line, 11pt secondary, so the layout never jumps). clicking the title expands the row
   (one at a time) to show: `reach  near · mid · far` (proximity zones only, `zone.allowsReach`),
   `confirm click  [switch]` (proximity zones only), and a `feel it` text button that calls `engine.preview`.
 - when the master switch is off, zone rows dim to 32% and aren't interactive.
 - permission banner (shown instead of the zone list when `!Permissions.isTrusted`): 
-  `haptyk needs accessibility access to see where buttons are.` + text buttons `grant access` (request + open settings)
+  `haptyq needs accessibility access to see where buttons are.` + text buttons `grant access` (request + open settings)
   and, after the user has clicked it once, `i did it` (calls `engine.refresh()`). poll `Permissions.isTrusted`
   every 1s while the banner is visible and dismiss automatically.
 - hardware banner when `!engine.hardwareAvailable`: `no force touch trackpad found. settings are saved anyway.`
@@ -83,7 +83,7 @@ quit                                v0.1.0
   `hidesOnDeactivate = false`, `canBecomeKey` false. dragging is handled in `sendEvent` (not `isMovableByWindowBackground`, which swallows mouse-up and breaks click-to-toggle).
 - level: `Int(CGWindowLevelForKey(.desktopIconWindow)) + 1` when `!gadgetFloats`, else `.floating`.
 - size 140×140, black rounded rect radius 22 with a 1px 16%-yellow border.
-- content: top-left `haptyk` 11 secondary; center the state word `on` / `off` at 22 medium (yellow when on,
+- content: top-left `haptyq` 11 secondary; center the state word `on` / `off` at 22 medium (yellow when on,
   32% when off); below it a pulse dot (6pt circle) that flashes on every `onPulse`; bottom-left caption:
   the strongest active zone, e.g. `close · frenzy` (11 secondary), or `paused` when off.
 - clicking anywhere that isn't a drag toggles `enabled`. distinguish click vs drag: treat as click only if the mouse
@@ -96,27 +96,27 @@ quit                                v0.1.0
 capsule 34×18. off: 16% yellow border, knob 32% yellow at left. on: yellow fill, black knob at right.
 120ms ease-out knob slide. accessible as a toggle with a lowercase label.
 
-## 3. app structure (target `haptyk`)
+## 3. app structure (target `haptyq`)
 
-- `@main struct HaptykApp: App` with `MenuBarExtra`. `LSUIElement` = true (no dock icon); also set
+- `@main struct HaptyqApp: App` with `MenuBarExtra`. `LSUIElement` = true (no dock icon); also set
   `NSApp.setActivationPolicy(.accessory)` at launch as a belt-and-braces measure.
 - `@MainActor final class AppModel: ObservableObject`:
   - `@Published var settings: Settings` loaded from `SettingsStore.load()`; on change → `engine.apply`, debounce 300ms
     then `SettingsStore.save`; also save on `NSApplication.willTerminateNotification`.
   - `@Published var trusted: Bool`, `@Published var pulse: Int` (increments on `engine.onPulse`).
-  - owns `HaptykEngine` and `GadgetController`.
+  - owns `HaptyqEngine` and `GadgetController`.
 - `GadgetController` shows/hides/re-levels the panel reactively from settings.
-- files: `HaptykApp.swift`, `AppModel.swift`, `Theme.swift` (colors, fonts, spacing tokens), `PopoverView.swift`,
-  `SignalBar.swift`, `HaptykSwitch.swift`, `GadgetController.swift`, `GadgetView.swift`, `MenuBarIcon.swift`.
+- files: `HaptyqApp.swift`, `AppModel.swift`, `Theme.swift` (colors, fonts, spacing tokens), `PopoverView.swift`,
+  `SignalBar.swift`, `HaptyqSwitch.swift`, `GadgetController.swift`, `GadgetView.swift`, `MenuBarIcon.swift`.
   remove the placeholder `main.swift` (a target with `@main` must not have `main.swift`).
 
-## 4. engine (target `HaptykKit`)
+## 4. engine (target `HaptyqKit`)
 
-public api is fixed by `HaptykEngine.swift` (skeleton). implementation rules:
+public api is fixed by `HaptyqEngine.swift` (skeleton). implementation rules:
 
 ### 4.1 threading
 - the event tap callback does nothing but copy `event.location` / type / deltas and hand them to a private serial
-  `DispatchQueue` ("haptyk.tracker", qos userInteractive). never call ax apis inside the callback.
+  `DispatchQueue` ("haptyq.tracker", qos userInteractive). never call ax apis inside the callback.
 - ax lookups happen on the tracker queue, at most every 50ms (coalesce moves), with
   `AXUIElementSetMessagingTimeout(systemWide, 0.05)`.
 - `Actuator.fire` must be serialized: add a private lock inside `Actuator` (HapticCore). its fallback
@@ -134,7 +134,7 @@ distance = max(0, |cursor − button center| − min(w,h)/2) in global top-left 
 
 ### 4.3 feel semantics
 pure function, unit tested: `func proximityConfig(for: ZoneSetting, ladder: [Int32]) -> ProximityConfig?`
-(put it in `HaptykKit/Mapping.swift`). radius = reach.points. ids slice the ladder (weak→strong):
+(put it in `HaptyqKit/Mapping.swift`). radius = reach.points. ids slice the ladder (weak→strong):
 
 | feel    | proximity zones (close/minimize/zoom)                                      | buttons (on enter) | edges (resize ratchet)   |
 |---------|----------------------------------------------------------------------------|--------------------|--------------------------|
@@ -173,9 +173,9 @@ entered element (`CFEqual` against the previous one).
 - add the lock to `Actuator` (see 4.1).
 - extend `ProximityEngine` with `update(distance: Double?, config: ProximityConfig?)` (config replaces the stored one
   atomically on the engine queue); keep `update(distance:)` and `config` for haptic-web.
-- `haptic-daemon` is removed (superseded by haptyk). keep `haptic-lab` and `haptic-web` compiling.
+- `haptic-daemon` is removed (superseded by haptyq). keep `haptic-lab` and `haptic-web` compiling.
 
-## 5. tests (`Tests/HaptykKitTests`, swift-testing)
+## 5. tests (`Tests/HaptyqKitTests`, swift-testing)
 - settings: defaults, json round-trip, decoding `{}` and partial/garbage zones falls back to defaults, unknown keys ignored.
 - mapping: every feel × zone row of the table, ladder clamping with ladders of length 1 and 2, nil for off.
 - distance math and target selection (nearest wins, ties → higher feel). keep that logic in pure functions to test it.
@@ -184,27 +184,27 @@ entered element (`CFEqual` against the previous one).
 - `scripts/make-icon.swift`: renders the app icon with AppKit (black rounded square per macOS icon grid, the
   three-bar glyph in yellow, large and centered) at 1024 → `scripts/bundle.sh` builds the `.iconset` via `sips` and
   `iconutil`.
-- `Resources/Info.plist`: `CFBundleName`/`CFBundleDisplayName` `haptyk`, `CFBundleIdentifier`
-  `io.github.bassem-1.haptyk`, `CFBundleExecutable` `haptyk`, `CFBundleIconFile` `AppIcon`, `LSUIElement` true,
+- `Resources/Info.plist`: `CFBundleName`/`CFBundleDisplayName` `haptyq`, `CFBundleIdentifier`
+  `io.github.bassem-1.haptyq`, `CFBundleExecutable` `haptyq`, `CFBundleIconFile` `AppIcon`, `LSUIElement` true,
   `LSMinimumSystemVersion` 13.0, `CFBundleShortVersionString`/`CFBundleVersion` substituted from `VERSION`
   (file at repo root, `0.1.0`), `NSHumanReadableCopyright`.
 - `scripts/bundle.sh [--universal]`: release build (universal uses `--arch arm64 --arch x86_64`, requires xcode,
-  output under `.build/apple/Products/Release`; otherwise host arch), assemble `dist/haptyk.app`, ad-hoc sign
-  (`codesign --force --sign - --timestamp=none`), zip with `ditto -c -k --keepParent` → `dist/haptyk-<version>.zip`,
+  output under `.build/apple/Products/Release`; otherwise host arch), assemble `dist/haptyq.app`, ad-hoc sign
+  (`codesign --force --sign - --timestamp=none`), zip with `ditto -c -k --keepParent` → `dist/haptyq-<version>.zip`,
   and print the sha256. `set -euo pipefail`, quote everything, work from repo root regardless of cwd.
 - `.github/workflows/release.yml`: on tag `v*`: `macos-14` runner, `swift test`, `scripts/bundle.sh --universal`,
   create the release with the zip attached (`gh release create` using `GITHUB_TOKEN`, `permissions: contents: write`).
 - `.github/workflows/ci.yml`: on push/pr: `swift build` + `swift test`.
 - readme (lowercase): what it is, a short gif placeholder line, install (download zip, move to /Applications,
   first open: macOS 15+ → system settings › privacy & security › open anyway; macOS 13–14 → right-click › open;
-  or `xattr -dr com.apple.quarantine /Applications/haptyk.app`), grant accessibility, note that ad-hoc builds
+  or `xattr -dr com.apple.quarantine /Applications/haptyq.app`), grant accessibility, note that ad-hoc builds
   need accessibility re-granted after each update, build from source, calibrating ids with `haptic-web`,
-  disclaimer about private apis, license line (mit). add `LICENSE` (mit, 2026, "haptyk contributors").
+  disclaimer about private apis, license line (mit). add `LICENSE` (mit, 2026, "haptyq contributors").
 
 ## 7. ownership
 | owner          | files |
 |----------------|-------|
-| lead           | `Package.swift`, `Sources/HaptykKit/Model.swift`, `docs/` |
-| engine agent   | `Sources/HapticCore/**`, `Sources/HaptykKit/**` (except Model.swift), `Sources/haptic-web/**`, `Sources/haptic-lab/**`, `Tests/**` |
-| ui agent       | `Sources/haptyk/**` |
+| lead           | `Package.swift`, `Sources/HaptyqKit/Model.swift`, `docs/` |
+| engine agent   | `Sources/HapticCore/**`, `Sources/HaptyqKit/**` (except Model.swift), `Sources/haptic-web/**`, `Sources/haptic-lab/**`, `Tests/**` |
+| ui agent       | `Sources/haptyq/**` |
 | release agent  | `scripts/**`, `Resources/**`, `.github/**`, `README.md`, `LICENSE`, `VERSION`, `.gitignore` |

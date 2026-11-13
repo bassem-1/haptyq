@@ -1,5 +1,5 @@
 import SwiftUI
-import HaptykKit
+import HaptyqKit
 
 struct GadgetView: View {
     @ObservedObject var model: AppModel
@@ -27,7 +27,7 @@ struct GadgetView: View {
             }
             VStack {
                 HStack {
-                    Text("haptyk").font(Theme.font(11)).foregroundColor(Theme.fg2)
+                    Text("haptyq").font(Theme.font(11)).foregroundColor(Theme.fg2)
                     Spacer()
                 }
                 Spacer()
@@ -44,7 +44,7 @@ struct GadgetView: View {
         }
         .frame(width: 140, height: 140)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("haptyk")
+        .accessibilityLabel("haptyq")
         .accessibilityValue(on ? "on" : "off")
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { model.settings.enabled.toggle() }
