@@ -46,7 +46,7 @@ private let tapCallback: CGEventTapCallBack = { _, type, event, refcon in
 
 /// Owns the event tap, accessibility lookups and the actuator. Main-thread API.
 @MainActor
-public final class TremorEngine {
+public final class HaptykEngine {
     /// False when no force touch trackpad / private actuator could be opened.
     public private(set) var hardwareAvailable: Bool = false
 

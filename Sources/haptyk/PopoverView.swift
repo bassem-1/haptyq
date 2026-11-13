@@ -1,5 +1,5 @@
 import SwiftUI
-import TremorKit
+import HaptykKit
 
 struct PopoverView: View {
     @ObservedObject var model: AppModel
@@ -43,14 +43,14 @@ struct PopoverView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text("tremor").font(Theme.font(13, .medium)).foregroundColor(Theme.fg)
+                    Text("haptyk").font(Theme.font(13, .medium)).foregroundColor(Theme.fg)
                     PulseDot(pulses: model.pulses)
                 }
                 Text("haptics that tell you where you are.")
                     .font(Theme.font(11)).foregroundColor(Theme.fg2)
             }
             Spacer(minLength: 8)
-            TremorSwitch(isOn: $model.settings.enabled, label: "tremor")
+            HaptykSwitch(isOn: $model.settings.enabled, label: "haptyk")
         }
     }
 
@@ -83,7 +83,7 @@ struct PopoverView: View {
 
     private var permissionBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("tremor needs accessibility access to see where buttons are.")
+            Text("haptyk needs accessibility access to see where buttons are.")
                 .font(Theme.font(13)).foregroundColor(Theme.fg)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
@@ -130,7 +130,7 @@ struct PopoverView: View {
         HStack {
             Text(title).font(Theme.font(13)).foregroundColor(Theme.fg)
             Spacer(minLength: 8)
-            TremorSwitch(isOn: isOn, label: title)
+            HaptykSwitch(isOn: isOn, label: title)
         }
         .frame(height: Theme.row)
     }
@@ -194,7 +194,7 @@ private struct ZoneRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .tremorFocus()
+                .haptykFocus()
                 .accessibilityLabel("reach \(r.title)")
                 .accessibilityAddTraits(setting.reach == r ? [.isButton, .isSelected] : .isButton)
             }
@@ -206,7 +206,7 @@ private struct ZoneRow: View {
         HStack {
             Text("confirm click").font(Theme.font(11)).foregroundColor(Theme.fg2)
             Spacer()
-            TremorSwitch(isOn: $setting.confirmClick, label: "\(zone.title) confirm click")
+            HaptykSwitch(isOn: $setting.confirmClick, label: "\(zone.title) confirm click")
         }
         .frame(height: Theme.row)
     }

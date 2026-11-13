@@ -1,9 +1,9 @@
 import CoreGraphics
 import Foundation
 
-// Shared contract between the engine (TremorKit) and the ui (tremor). Change only with care.
+// Shared contract between the engine (HaptykKit) and the ui (haptyk). Change only with care.
 
-/// A place on screen tremor reacts to.
+/// A place on screen haptyk reacts to.
 public enum Zone: String, Codable, CaseIterable, Identifiable, CodingKeyRepresentable, Sendable {
     case close, minimize, zoom, buttons, edges
 

@@ -1,5 +1,5 @@
 import SwiftUI
-import TremorKit
+import HaptykKit
 
 /// The signature control: five cells, cell i sets Feel(level: i).
 struct SignalBar: View {

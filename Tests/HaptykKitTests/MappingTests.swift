@@ -1,7 +1,7 @@
 import CoreGraphics
 import HapticCore
 import Testing
-@testable import TremorKit
+@testable import HaptykKit
 
 private let ladder: [Int32] = [1, 3, 4, 6]
 private func cfg(_ f: Feel, _ r: Reach = .mid, _ l: [Int32] = ladder) -> ProximityConfig? {

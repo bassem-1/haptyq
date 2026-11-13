@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Capsule switch, 34x18.
-struct TremorSwitch: View {
+struct HaptykSwitch: View {
     @Binding var isOn: Bool
     let label: String
 
@@ -20,7 +20,7 @@ struct TremorSwitch: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .tremorFocus()
+        .haptykFocus()
         .accessibilityLabel(label)
         .accessibilityValue(isOn ? "on" : "off")
         .modifier(ToggleTrait())

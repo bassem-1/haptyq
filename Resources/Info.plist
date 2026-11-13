@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>tremor</string>
+    <string>haptyk</string>
     <key>CFBundleDisplayName</key>
-    <string>tremor</string>
+    <string>haptyk</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.bassem-1.tremor</string>
+    <string>io.github.bassem-1.haptyk</string>
     <key>CFBundleExecutable</key>
-    <string>tremor</string>
+    <string>haptyk</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -29,6 +29,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>© 2026 tremor contributors. mit license.</string>
+    <string>© 2026 haptyk contributors. mit license.</string>
 </dict>
 </plist>

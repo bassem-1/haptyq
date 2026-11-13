@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# builds tremor, assembles dist/tremor.app, ad-hoc signs it and zips it for a github release.
+# builds haptyk, assembles dist/haptyk.app, ad-hoc signs it and zips it for a github release.
 # usage: scripts/bundle.sh [--universal]
 set -euo pipefail
 
@@ -19,7 +19,7 @@ done
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-app_name="tremor"
+app_name="haptyk"
 version="$(tr -d '[:space:]' < "$root/VERSION")"
 if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
     echo "error: VERSION must be dotted numbers, got '$version'" >&2
@@ -29,10 +29,10 @@ fi
 dist="$root/dist"
 app="$dist/$app_name.app"
 zip_path="$dist/$app_name-$version.zip"
-work="${TREMOR_BUILD_DIR:-$root/.build}/bundle"
+work="${HAPTYK_BUILD_DIR:-$root/.build}/bundle"
 
-# TREMOR_BUILD_DIR moves build products elsewhere (useful when the repo lives in an iCloud-synced folder).
-build_args=(-c release --scratch-path "${TREMOR_BUILD_DIR:-$root/.build}")
+# HAPTYK_BUILD_DIR moves build products elsewhere (useful when the repo lives in an iCloud-synced folder).
+build_args=(-c release --scratch-path "${HAPTYK_BUILD_DIR:-$root/.build}")
 if [[ $universal -eq 1 ]]; then
     build_args+=(--arch arm64 --arch x86_64)
 fi

@@ -1,5 +1,5 @@
 import SwiftUI
-import TremorKit
+import HaptykKit
 
 struct GadgetView: View {
     @ObservedObject var model: AppModel
@@ -27,7 +27,7 @@ struct GadgetView: View {
             }
             VStack {
                 HStack {
-                    Text("tremor").font(Theme.font(11)).foregroundColor(Theme.fg2)
+                    Text("haptyk").font(Theme.font(11)).foregroundColor(Theme.fg2)
                     Spacer()
                 }
                 Spacer()
@@ -44,7 +44,7 @@ struct GadgetView: View {
         }
         .frame(width: 140, height: 140)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("tremor")
+        .accessibilityLabel("haptyk")
         .accessibilityValue(on ? "on" : "off")
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { model.settings.enabled.toggle() }

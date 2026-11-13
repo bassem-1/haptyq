@@ -24,7 +24,7 @@ enum Theme {
 
 extension View {
     /// System focus rings use the accent color, so turn them off where we can.
-    @ViewBuilder func tremorFocus() -> some View {
+    @ViewBuilder func haptykFocus() -> some View {
         if #available(macOS 14, *) {
             self.focusEffectDisabled()
         } else {
@@ -52,7 +52,7 @@ struct TextButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .tremorFocus()
+        .haptykFocus()
         .onHover { hover = $0 }
         .accessibilityLabel(title)
     }
